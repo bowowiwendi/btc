@@ -250,6 +250,67 @@ function view_service_log() {
     ), 'cyan');
 }
 
+// ─── Auto-Start ───
+
+function install_autostart() {
+    $script = __FILE__;
+
+    // Termux boot
+    $termux_boot_dir = getenv('HOME') . '/.termux/boot';
+    if (is_dir($termux_boot_dir) || @mkdir($termux_boot_dir, 0755, true)) {
+        $boot_script = "$termux_boot_dir/btc-claimer.sh";
+        file_put_contents($boot_script, "#!/data/data/com.termux/files/usr/bin/bash\ncd " . __DIR__ . "\nexec php " . escapeshellarg($script) . " --daemon\n");
+        chmod($boot_script, 0755);
+    }
+
+    // systemd user
+    $systemd_dir = getenv('HOME') . '/.config/systemd/user';
+    if (is_dir($systemd_dir) || @mkdir($systemd_dir, 0755, true)) {
+        $service_content = "[Unit]\nDescription=BTC TON Revenue Auto Claimer\nAfter=network.target\n\n[Service]\nType=simple\nExecStart=" . PHP_BINARY . " " . escapeshellarg($script) . " --daemon\nWorkingDirectory=" . __DIR__ . "\nRestart=on-failure\nRestartSec=10\n\n[Install]\nWantedBy=default.target\n";
+        file_put_contents("$systemd_dir/btc-claimer.service", $service_content);
+        exec("systemctl --user daemon-reload 2>/dev/null");
+        exec("systemctl --user enable btc-claimer.service 2>/dev/null");
+        exec("systemctl --user start btc-claimer.service 2>/dev/null");
+    }
+
+    // crontab fallback (@reboot)
+    $cron_line = "@reboot cd " . __DIR__ . " && " . PHP_BINARY . " " . escapeshellarg($script) . " --daemon > " . LOG_FILE . " 2>&1\n";
+    $existing_cron = @shell_exec("crontab -l 2>/dev/null") ?: '';
+    if (strpos($existing_cron, $cron_line) === false) {
+        file_put_contents('/tmp/btc-cron', $existing_cron . $cron_line);
+        exec("crontab /tmp/btc-cron 2>/dev/null");
+        unlink('/tmp/btc-cron');
+    }
+
+    box([
+        ctext(color('green', "[✓] Auto-start terpasang!")),
+        '---',
+        " ".color('white', "Termux : $termux_boot_dir/btc-claimer.sh"),
+        " ".color('white', "systemd: btc-claimer.service"),
+        " ".color('white', "cron   : @reboot (fallback)")
+    ], 'green');
+}
+
+function remove_autostart() {
+    // systemd
+    exec("systemctl --user stop btc-claimer.service 2>/dev/null");
+    exec("systemctl --user disable btc-claimer.service 2>/dev/null");
+    @unlink(getenv('HOME') . '/.config/systemd/user/btc-claimer.service');
+    exec("systemctl --user daemon-reload 2>/dev/null");
+
+    // Termux boot
+    @unlink(getenv('HOME') . '/.termux/boot/btc-claimer.sh');
+
+    // crontab
+    $cron = @shell_exec("crontab -l 2>/dev/null") ?: '';
+    $cron = preg_replace('/@reboot.*btc-claimer.*\n?/', '', $cron);
+    file_put_contents('/tmp/btc-cron', $cron);
+    exec("crontab /tmp/btc-cron 2>/dev/null");
+    unlink('/tmp/btc-cron');
+
+    box([ctext(color('green', "[✓] Auto-start dihapus"))], 'green');
+}
+
 // ─── Manual Claim ───
 
 function manual_claim() {
@@ -342,6 +403,8 @@ while (true) {
         " ".color('green', "6). ").color('white', "Restart Service"),
         " ".color('green', "7). ").color('white', "Lihat Log"),
         " ".color('green', "8). ").color('white', "Manual Claim (loop terus)"),
+        " ".color('green', "9). ").color('white', "Pasang Auto-Start (reboot)"),
+        " ".color('green', "10). ").color('white', "Hapus Auto-Start"),
         " ".color('green', "0). ").color('white', "Keluar"),
     ], 'white');
 
@@ -362,6 +425,8 @@ while (true) {
         '6' => restart_service(),
         '7' => view_service_log(),
         '8' => manual_claim(),
+        '9' => install_autostart(),
+        '10' => remove_autostart(),
         default => null
     };
 

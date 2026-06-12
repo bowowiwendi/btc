@@ -38,6 +38,8 @@ php claim.php
 | 6 | Restart Service |
 | 7 | Lihat Log |
 | 8 | Manual Claim (loop) |
+| 9 | Pasang Auto-Start (tahan reboot) |
+| 10 | Hapus Auto-Start |
 | 0 | Keluar |
 
 ### Cara Mendapatkan initData
@@ -65,6 +67,25 @@ Service berjalan sebagai proses background terpisah. Aman keluar dari menu, serv
 php claim.php
 # Pilih menu 8
 # Tekan q + Enter untuk stop loop
+```
+
+### Auto-Start (Tahan Reboot)
+
+```bash
+php claim.php
+# Pilih menu 9 untuk pasang auto-start
+```
+
+Fungsi ini otomatis mendaftarkan service ke:
+- **Termux**: Install `Termux:Boot` dari F-Droid, lalu menu 9
+- **systemd**: `btc-claimer.service` (user level)
+- **crontab**: `@reboot` (fallback)
+
+Service akan otomatis jalan setiap kali device/server reboot.
+
+```bash
+# Hapus auto-start
+php claim.php → Pilih menu 10
 ```
 
 ## File
