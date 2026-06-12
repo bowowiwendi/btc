@@ -416,19 +416,18 @@ while (true) {
         exit("Bye!\n");
     }
 
-    match($p) {
-        '1' => add_account(),
-        '2' => list_accounts(),
-        '3' => delete_account(),
-        '4' => start_service(),
-        '5' => stop_service(),
-        '6' => restart_service(),
-        '7' => view_service_log(),
-        '8' => manual_claim(),
-        '9' => install_autostart(),
-        '10' => remove_autostart(),
-        default => null
-    };
+    switch ($p) {
+        case '1': add_account(); break;
+        case '2': list_accounts(); break;
+        case '3': delete_account(); break;
+        case '4': start_service(); break;
+        case '5': stop_service(); break;
+        case '6': restart_service(); break;
+        case '7': view_service_log(); break;
+        case '8': manual_claim(); break;
+        case '9': install_autostart(); break;
+        case '10': remove_autostart(); break;
+    }
 
     echo "\n ".color('yellow', "Tekan ENTER untuk kembali...");
     readline();
