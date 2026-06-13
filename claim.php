@@ -139,17 +139,13 @@ function run_service() {
             $label = $acc['label'] ?? "Akun #".($i+1);
             fwrite($log_fh, "\n--- $label ---\n");
             $result = do_claim($acc['initData'], $log_fh);
-
             if (isset($result['wait'])) {
-                fwrite($log_fh, "Tunggu {$result['wait']} detik sebelum akun berikutnya...\n");
-                sleep($result['wait']);
-            } else {
-                sleep(5);
+                fwrite($log_fh, "Cooldown {$result['wait']}s (skip, lanjut akun lain)\n");
             }
         }
 
-        fwrite($log_fh, "\n=== Siklus selesai, tunggu 15 detik... ===\n");
-        sleep(15);
+        fwrite($log_fh, "\n=== Semua akun selesai, tunggu 30 detik... ===\n");
+        sleep(30);
     }
 
     fclose($log_fh);
@@ -333,36 +329,24 @@ function manual_claim() {
     $running = true;
     while ($running) {
         foreach ($accs as $i => $acc) {
-            // Cek input tanpa blokir
             $ch = fread(STDIN, 1);
-            if ($ch === 'q' || $ch === 'Q') {
-                $running = false;
-                break;
-            }
+            if ($ch === 'q' || $ch === 'Q') { $running = false; break; }
 
             $label = $acc['label'] ?? "Akun #".($i+1);
             echo "\n";
-            box([" ".color('blue', "[$label] Memulai klaim...")], 'blue');
+            box([" ".color('blue', "[$label] Klaim...")], 'blue');
             $result = do_claim($acc['initData']);
 
             if (isset($result['wait'])) {
-                $w = $result['wait'];
                 echo "\n";
-                box([" ".color('yellow', "Tunggu {$w} detik... (tekan q + ENTER untuk skip)")], 'yellow');
-                for ($s = $w; $s > 0; $s--) {
-                    $ch = fread(STDIN, 1);
-                    if ($ch === 'q' || $ch === 'Q') { break 2; }
-                    sleep(1);
-                }
-            } else {
-                sleep(3);
+                box([" ".color('yellow', "[$label] Cooldown {$result['wait']}s (skip ke akun lain)")], 'yellow');
             }
         }
 
         if ($running) {
             echo "\n";
-            box([" ".color('yellow', "Siklus selesai. Ulang dalam 10 detik... (tekan q + ENTER)")], 'yellow');
-            for ($s = 10; $s > 0; $s--) {
+            box([" ".color('yellow', "Semua akun selesai. Loop ulang 30 detik... (tekan q + ENTER)")], 'yellow');
+            for ($s = 30; $s > 0; $s--) {
                 $ch = fread(STDIN, 1);
                 if ($ch === 'q' || $ch === 'Q') { break; }
                 sleep(1);
